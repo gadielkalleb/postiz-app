@@ -1,43 +1,19 @@
-# Production overrides. Start with:
+# Production overrides. Cloudflare Tunnel on the VPS routes
+# foretell.serverlesscode.cloud to http://127.0.0.1:4007.
+# Start with:
 # docker compose --env-file .env.production -f docker-compose.yaml -f docker-compose.production.yaml up -d
 name: foretell
 
 services:
-  caddy:
-    image: caddy:2.11.9-alpine
-    container_name: foretell-caddy
-    restart: unless-stopped
-    depends_on:
-      postiz:
-        condition: service_started
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - foretell-caddy-data:/data
-      - foretell-caddy-config:/config
-    networks:
-      - postiz-network
-    deploy:
-      resources:
-        limits:
-          memory: 256M
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
-
   postiz:
     # Build from this fork so the production app includes Foretell's branding,
     # Brazilian prices, and Meta configuration. Pin IMAGE_TAG for repeatable deploys.
-    image: foretell/postiz:${IMAGE_TAG:-b31d29f}
+    image: foretell/postiz:${IMAGE_TAG:-c65d2cd}
     build:
       context: .
       dockerfile: Dockerfile.dev
       args:
-        NEXT_PUBLIC_VERSION: ${IMAGE_TAG:-b31d29f}
+        NEXT_PUBLIC_VERSION: ${IMAGE_TAG:-c65d2cd}
     env_file:
       - .env.production
     environment:
@@ -154,8 +130,4 @@ volumes:
   temporal-elasticsearch-data:
     external: false
   temporal-postgresql-data:
-    external: false
-  foretell-caddy-data:
-    external: false
-  foretell-caddy-config:
     external: false

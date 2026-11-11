@@ -1,4 +1,0 @@
-foretell.serverlesscode.cloud {
-	encode zstd gzip
-	reverse_proxy postiz:5000
-}
