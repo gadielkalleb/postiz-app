@@ -9,7 +9,7 @@ import { OrganizationSelector } from '@gitroom/frontend/components/layout/organi
 
 export const BillingAfter = () => {
   const user = useUser();
-  const { isGeneral, billingEnabled } = useVariables();
+  const { billingEnabled } = useVariables();
   const t = useT();
   return (
     <div className="flex-1 rounded-3xl px-0 py-[17px] flex flex-col max-w-[1440px] mx-auto">
@@ -22,8 +22,8 @@ export const BillingAfter = () => {
       <div className="text-center mb-[20px] text-xl [@media(max-width:1024px)]:text-xl">
         <h1 className="text-3xl [@media(max-width:1024px)]:text-xl">
           {t(
-            'join_10000_entrepreneurs_who_use_postiz',
-            'Join 10,000+ Entrepreneurs Who Use Postiz'
+            'join_foretell_social_media',
+            'Gerencie suas redes sociais com o Foretell'
           )}
           <br />
           {t(

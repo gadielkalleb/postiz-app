@@ -1,0 +1,161 @@
+# Production overrides. Start with:
+# docker compose --env-file .env.production -f docker-compose.yaml -f docker-compose.production.yaml up -d
+name: foretell
+
+services:
+  caddy:
+    image: caddy:2.11.9-alpine
+    container_name: foretell-caddy
+    restart: unless-stopped
+    depends_on:
+      postiz:
+        condition: service_started
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - foretell-caddy-data:/data
+      - foretell-caddy-config:/config
+    networks:
+      - postiz-network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postiz:
+    # Build from this fork so the production app includes Foretell's branding,
+    # Brazilian prices, and Meta configuration. Pin IMAGE_TAG for repeatable deploys.
+    image: foretell/postiz:${IMAGE_TAG:-b31d29f}
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      args:
+        NEXT_PUBLIC_VERSION: ${IMAGE_TAG:-b31d29f}
+    env_file:
+      - .env.production
+    environment:
+      MAIN_URL: ${MAIN_URL:?Set MAIN_URL}
+      FRONTEND_URL: ${FRONTEND_URL:?Set FRONTEND_URL}
+      NEXT_PUBLIC_BACKEND_URL: ${NEXT_PUBLIC_BACKEND_URL:?Set NEXT_PUBLIC_BACKEND_URL}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET}
+      DATABASE_URL: postgresql://${POSTGRES_USER:?Set POSTGRES_USER}:${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}@postiz-postgres:5432/${POSTGRES_DB:?Set POSTGRES_DB}
+      REDIS_URL: redis://postiz-redis:6379
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      TEMPORAL_ADDRESS: temporal:7233
+      DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-false}
+      STORAGE_PROVIDER: cloudflare
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      CLOUDFLARE_ACCOUNT_ID: ${CLOUDFLARE_ACCOUNT_ID:?Set CLOUDFLARE_ACCOUNT_ID}
+      CLOUDFLARE_ACCESS_KEY: ${CLOUDFLARE_ACCESS_KEY:?Set CLOUDFLARE_ACCESS_KEY}
+      CLOUDFLARE_SECRET_ACCESS_KEY: ${CLOUDFLARE_SECRET_ACCESS_KEY:?Set CLOUDFLARE_SECRET_ACCESS_KEY}
+      CLOUDFLARE_BUCKETNAME: ${CLOUDFLARE_BUCKETNAME:?Set CLOUDFLARE_BUCKETNAME}
+      CLOUDFLARE_BUCKET_URL: ${CLOUDFLARE_BUCKET_URL:?Set CLOUDFLARE_BUCKET_URL}
+      CLOUDFLARE_REGION: auto
+      EMAIL_PROVIDER: resend
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:?Set EMAIL_FROM_ADDRESS}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-Foretell}
+      RESEND_API_KEY: ${RESEND_API_KEY:?Set RESEND_API_KEY}
+      STRIPE_PUBLISHABLE_KEY: ${STRIPE_PUBLISHABLE_KEY:?Set STRIPE_PUBLISHABLE_KEY}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:?Set STRIPE_SECRET_KEY}
+      STRIPE_SIGNING_KEY: ${STRIPE_SIGNING_KEY:?Set STRIPE_SIGNING_KEY}
+      IS_GENERAL: "true"
+    ports: !override
+      - "127.0.0.1:4007:5000"
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postiz-postgres:
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  postiz-redis:
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  temporal:
+    # Requires Docker Compose v2.24+; don't expose Temporal's admin API publicly.
+    ports: !reset []
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  temporal-postgresql:
+    volumes: !override
+      - temporal-postgresql-data:/var/lib/postgresql/data
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+
+  temporal-elasticsearch:
+    volumes: !override
+      - temporal-elasticsearch-data:/usr/share/elasticsearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+
+  temporal-admin-tools:
+    profiles: [debug]
+
+  temporal-ui:
+    profiles: [debug]
+    ports: !reset []
+
+  spotlight:
+    profiles: [observability]
+    ports: !reset []
+
+volumes:
+  temporal-elasticsearch-data:
+    external: false
+  temporal-postgresql-data:
+    external: false
+  foretell-caddy-data:
+    external: false
+  foretell-caddy-config:
+    external: false

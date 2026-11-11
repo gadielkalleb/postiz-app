@@ -116,7 +116,7 @@ export class StripeService extends PaymentProviderAbstract {
     try {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 100,
-        currency: 'usd',
+        currency: 'brl',
         payment_method: latestMethod.id,
         customer: event.data.object.customer as string,
         off_session: true,
@@ -434,24 +434,46 @@ export class StripeService extends PaymentProviderAbstract {
     return customer.id;
   }
 
+  private async getOrCreateForetellProduct(plan: string) {
+    const products = await stripe.products.list({ active: true, limit: 100 });
+    const existing = products.data.find(
+      (product) =>
+        product.metadata?.service === 'foretell' &&
+        product.metadata?.plan?.toUpperCase() === plan.toUpperCase()
+    );
+
+    if (existing) {
+      return existing;
+    }
+
+    return stripe.products.create({
+      active: true,
+      name: `Foretell ${plan}`,
+      metadata: { service: 'foretell', plan: plan.toUpperCase() },
+    });
+  }
+
   async getPackages() {
     const products = await stripe.prices.list({
       active: true,
       expand: ['data.tiers', 'data.product'],
-      lookup_keys: [
-        'standard_monthly',
-        'standard_yearly',
-        'pro_monthly',
-        'pro_yearly',
-      ],
+      limit: 100,
     });
 
     const productsList = groupBy(
-      products.data.map((p) => ({
-        name: (p.product as Stripe.Product)?.name,
-        recurring: p?.recurring?.interval!,
-        price: p?.tiers?.[0]?.unit_amount! / 100,
-      })),
+      products.data
+        .filter(
+          (p) =>
+            p.currency === 'brl' &&
+            typeof p.product !== 'string' &&
+            !('deleted' in p.product) &&
+            p.product.metadata?.service === 'foretell'
+        )
+        .map((p) => ({
+          name: (p.product as Stripe.Product)?.name,
+          recurring: p?.recurring?.interval!,
+          price: p.unit_amount! / 100,
+        })),
       'recurring'
     );
 
@@ -462,19 +484,7 @@ export class StripeService extends PaymentProviderAbstract {
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
     const priceData = pricing[body.billing];
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
+    const findProduct = await this.getOrCreateForetellProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
@@ -484,24 +494,26 @@ export class StripeService extends PaymentProviderAbstract {
     const findPrice =
       pricesList.data.find(
         (p) =>
+          p.currency === 'brl' &&
           p?.recurring?.interval?.toLowerCase() ===
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
-          p?.nickname === body.billing + ' ' + body.period &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
+            Math.round(
+              (body.period === 'MONTHLY'
+                ? priceData.month_price
+                : priceData.year_price) * 100
+            )
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: 'brl',
         nickname: body.billing + ' ' + body.period,
-        unit_amount:
+        unit_amount: Math.round(
           (body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price) * 100
+        ),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -1099,19 +1111,7 @@ export class StripeService extends PaymentProviderAbstract {
     if ((await this.getLiveSubscriptions(customer)).length) {
       return { blocked: true };
     }
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
+    const findProduct = await this.getOrCreateForetellProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
@@ -1121,23 +1121,26 @@ export class StripeService extends PaymentProviderAbstract {
     const findPrice =
       pricesList.data.find(
         (p) =>
+          p.currency === 'brl' &&
           p?.recurring?.interval?.toLowerCase() ===
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
+            Math.round(
+              (body.period === 'MONTHLY'
+                ? priceData.month_price
+                : priceData.year_price) * 100
+            )
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: 'brl',
         nickname: body.billing + ' ' + body.period,
-        unit_amount:
+        unit_amount: Math.round(
           (body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price) * 100
+        ),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -1165,19 +1168,7 @@ export class StripeService extends PaymentProviderAbstract {
     const priceData = pricing[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
+    const findProduct = await this.getOrCreateForetellProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
@@ -1187,23 +1178,26 @@ export class StripeService extends PaymentProviderAbstract {
     const findPrice =
       pricesList.data.find(
         (p) =>
+          p.currency === 'brl' &&
           p?.recurring?.interval?.toLowerCase() ===
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
-              ? priceData.month_price
-              : priceData.year_price) *
-              100
+            Math.round(
+              (body.period === 'MONTHLY'
+                ? priceData.month_price
+                : priceData.year_price) * 100
+            )
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: 'brl',
         nickname: body.billing + ' ' + body.period,
-        unit_amount:
+        unit_amount: Math.round(
           (body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price) * 100
+        ),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -1660,11 +1654,11 @@ export class StripeService extends PaymentProviderAbstract {
       name: `Admin coupon for ${org!.name}`,
       ...(body.type === 'percentage'
         ? { percent_off: body.value }
-        : { amount_off: Math.round(body.value * 100), currency: 'usd' }),
+        : { amount_off: Math.round(body.value * 100), currency: 'brl' }),
       ...(body.months === 1
         ? { duration: 'once' }
         : { duration: 'repeating', duration_in_months: body.months }),
-      metadata: { service: 'gitroom', organizationId },
+      metadata: { service: 'foretell', organizationId },
     });
 
     await stripe.subscriptions.update(stripeSubscription.id, {

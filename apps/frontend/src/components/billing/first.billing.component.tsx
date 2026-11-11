@@ -23,8 +23,6 @@ import {
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
-import { PlatformIcon } from '@gitroom/frontend/components/ui/platform.icon.component';
-import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import useCookie from 'react-use-cookie';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { DeveloperIconComponent } from '@gitroom/frontend/components/developer/developer.icon.component';
@@ -47,6 +45,12 @@ const EmbeddedBilling = dynamic(
   }
 );
 
+const formatPrice = (amount: number) =>
+  new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(amount);
+
 export const FirstBillingComponent = () => {
   const { stripeClient } = useVariables();
   const user = useUser();
@@ -57,7 +61,6 @@ export const FirstBillingComponent = () => {
   const [period, setPeriod] = useState('MONTHLY');
   const fetch = useFetch();
   const { mutate } = useSWRConfig();
-  const modals = useModals();
   const t = useT();
   const [datafast_visitor_id] = useCookie('datafast_visitor_id', '');
   const [datafast_session_id] = useCookie('datafast_session_id', '');
@@ -88,21 +91,6 @@ export const FirstBillingComponent = () => {
     ).json();
   }, [tier, period]);
 
-  const showYouTube = () => {
-    modals.openModal({
-      title: 'Grow Fast With Postiz (Play the video)',
-      children: (
-        <iframe
-          className="h-full aspect-video min-w-[800px]"
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title="Postiz Tutorial"
-          allow="autoplay"
-          allowFullScreen
-        />
-      ),
-    });
-  };
-
   const { data, isLoading } = useSWR(
     `/billing-${tier}-${period}`,
     loadCheckout,
@@ -130,22 +118,10 @@ export const FirstBillingComponent = () => {
     return (
       <>
         <div className="text-[46px] font-[600] leading-[110%] tablet:text-[36px] mobile:!text-[30px] whitespace-pre-line text-balance">
-          {t('billing_join_over', 'Join Over')}{' '}
-          <span className="text-[#FC69FF]">
-            {t('billing_entrepreneurs_count', '20,000+ Entrepreneurs')}
-          </span>{' '}
-          {t('billing_who_use', 'who use')}{' '}
           {t(
-            'billing_postiz_grow_social',
-            'Postiz To Grow Their Social Presence'
+            'billing_foretell_intro',
+            'Organize e agende o conteúdo das suas redes sociais em um só lugar.'
           )}
-        </div>
-
-        <div className="flex" onClick={showYouTube}>
-          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
-            <PlatformIcon identifier="youtube" size={20} />
-            <div>See the power of Postiz (click here)</div>
-          </div>
         </div>
 
         {!!user?.allowTrial && (
@@ -292,13 +268,14 @@ export const FirstBillingComponent = () => {
                       {capitalize(key)}
                     </div>
                     <div className="text-[24px] mobile:text-[18px] font-[400]">
-                      <span className="text-[44px] mobile:text-[30px] font-[600]">
-                        $
-                        {
-                          value[
-                            period === 'MONTHLY' ? 'month_price' : 'year_price'
-                          ]
-                        }
+                        <span className="text-[44px] mobile:text-[30px] font-[600]">
+                          {formatPrice(
+                            value[
+                              period === 'MONTHLY'
+                                ? 'month_price'
+                                : 'year_price'
+                            ]
+                          )}
                       </span>{' '}
                       {period === 'MONTHLY'
                         ? t('billing_per_month', '/ month')

@@ -27,9 +27,8 @@ import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const language = cookieStore.get(cookieName)?.value || fallbackLng;
-  const Plausible = !!process.env.STRIPE_PUBLISHABLE_KEY
-    ? PlausibleProvider
-    : Fragment;
+  const plausibleDomain = process.env.PLAUSIBLE_DOMAIN;
+  const Plausible = plausibleDomain ? PlausibleProvider : Fragment;
   return (
     <html>
       <head>
@@ -37,7 +36,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
         {!!process.env.DATAFAST_WEBSITE_ID && (
           <Script
             data-website-id={process.env.DATAFAST_WEBSITE_ID}
-            data-domain="postiz.com"
+            data-domain={new URL(process.env.MAIN_URL || 'http://localhost').hostname}
             src="https://datafa.st/js/script.js"
             strategy="afterInteractive"
           />
@@ -101,7 +100,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <FacebookComponent />
             <GoogleTagManagerComponent gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
             <Plausible
-              domain={!!process.env.IS_GENERAL ? 'postiz.com' : 'gitroom.com'}
+              domain={plausibleDomain || ''}
             >
               <LayoutContext>
                 <UtmSaver />
