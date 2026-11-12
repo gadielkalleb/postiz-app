@@ -13,12 +13,25 @@ GitHub token with `read:packages` and `write:packages`. It also expects a
 private; the same token is used briefly over SSH when the VPS authenticates to
 GHCR.
 
-The deploy key must be installed in `authorized_keys` with a forced command to
-`/home/kaleb/foretell/deploy-from-gha.sh` and without port, X11, agent, or PTY
-forwarding. The script validates a `sha-<40 lowercase hex characters>` image
-tag, logs into GHCR from stdin, runs `docker compose pull postiz`, and then
-recreates `postiz` with `--no-build --no-deps`. It must not recreate Postgres,
-Redis, Temporal, or the Cloudflare Tunnel.
+Install `ops/deploy-from-gha.sh` on the VPS at
+`/home/kaleb/foretell/deploy-from-gha.sh`, owned by root and not writable by the
+deploy user. The dedicated public key must be installed in `authorized_keys`
+with this prefix (replace the key with the generated public key):
+
+```text
+command="/home/kaleb/foretell/deploy-from-gha.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA...
+```
+
+The script accepts only a `sha-<40 lowercase hex characters>` image tag,
+receives the GHCR username and token through stdin, stores Docker credentials in
+a temporary directory, and runs `docker compose pull postiz` followed by
+`docker compose up -d --no-build --no-deps --force-recreate postiz`. It must
+not recreate Postgres, Redis, Temporal, or the Cloudflare Tunnel.
+
+Generate a dedicated key pair for GitHub Actions; do not reuse the personal SSH
+key used for interactive administration. Pin the VPS host key in the GitHub
+environment variable `VPS_HOST_KEY` using the already trusted host-key record,
+not an unverified `ssh-keyscan` result.
 
 Do not add an OCI source label to the image or use `GITHUB_TOKEN` to publish it:
 the source repository is public, while the image is intended to remain private.
