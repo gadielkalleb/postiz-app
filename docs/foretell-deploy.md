@@ -14,12 +14,13 @@ private; the same token is used briefly over SSH when the VPS authenticates to
 GHCR.
 
 Install `ops/deploy-from-gha.sh` on the VPS at
-`/home/kaleb/foretell/deploy-from-gha.sh`, owned by root and not writable by the
-deploy user. The dedicated public key must be installed in `authorized_keys`
+`/usr/local/sbin/foretell-deploy`, owned by root and not writable by the deploy
+user (for example, `sudo install -o root -g root -m 0755 ops/deploy-from-gha.sh
+/usr/local/sbin/foretell-deploy`). The dedicated public key must be installed in `authorized_keys`
 with this prefix (replace the key with the generated public key):
 
 ```text
-command="/home/kaleb/foretell/deploy-from-gha.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA...
+command="/usr/local/sbin/foretell-deploy",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA...
 ```
 
 The script accepts only a `sha-<40 lowercase hex characters>` image tag,
