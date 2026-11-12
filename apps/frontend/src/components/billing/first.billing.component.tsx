@@ -258,7 +258,7 @@ export const FirstBillingComponent = () => {
                     onClick={() => setTier(key)}
                     key={key}
                     className={clsx(
-                      'cursor-pointer select-none w-[266px] h-[138px] tablet:w-full tablet:h-[124px] p-[24px] tablet:p-[15px] rounded-[20px] flex flex-col',
+                      'cursor-pointer select-none w-full min-w-0 h-auto min-h-[138px] tablet:min-h-[124px] p-[24px] tablet:p-[15px] rounded-[20px] flex flex-col',
                       key === tier
                         ? 'border-[1.5px] border-[#618DFF]'
                         : 'border-[1.5px] border-newColColor'
@@ -267,19 +267,21 @@ export const FirstBillingComponent = () => {
                     <div className="text-[20px] mobile:text-[18px] font-[500]">
                       {capitalize(key)}
                     </div>
-                    <div className="text-[24px] mobile:text-[18px] font-[400]">
-                        <span className="text-[44px] mobile:text-[30px] font-[600]">
-                          {formatPrice(
-                            value[
-                              period === 'MONTHLY'
-                                ? 'month_price'
-                                : 'year_price'
-                            ]
-                          )}
-                      </span>{' '}
-                      {period === 'MONTHLY'
-                        ? t('billing_per_month', '/ month')
-                        : t('billing_per_year', '/ year')}
+                    <div className="flex flex-wrap items-baseline gap-x-[8px]">
+                      <span className="whitespace-nowrap text-[clamp(18px,3.1vw,44px)] mobile:!text-[clamp(18px,7vw,30px)] font-[600] leading-tight">
+                        {formatPrice(
+                          value[
+                            period === 'MONTHLY'
+                              ? 'month_price'
+                              : 'year_price'
+                          ]
+                        )}
+                      </span>
+                      <span className="whitespace-nowrap text-[18px] mobile:text-[16px] leading-tight">
+                        {period === 'MONTHLY'
+                          ? t('billing_per_month', '/ month')
+                          : t('billing_per_year', '/ year')}
+                      </span>
                     </div>
                   </div>
                 ),

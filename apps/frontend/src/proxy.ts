@@ -39,6 +39,12 @@ export async function proxy(request: NextRequest) {
     topResponse.headers.set(cookieName, lng);
   }
 
+  // Meta requires these legal pages to be reachable before a visitor signs in.
+  const publicLegalPaths = ['/privacy', '/terms', '/data-deletion'];
+  if (publicLegalPaths.includes(nextUrl.pathname.replace(/\/$/, ''))) {
+    return topResponse;
+  }
+
   if (nextUrl.pathname.startsWith('/modal/') && !authCookie) {
     return NextResponse.redirect(new URL(`/auth/login-required`, nextUrl.href));
   }
