@@ -8,7 +8,7 @@ services:
   postiz:
     # Build from this fork so the production app includes Foretell's branding,
     # Brazilian prices, and Meta configuration. Pin IMAGE_TAG for repeatable deploys.
-    image: foretell/postiz:${IMAGE_TAG:-c65d2cd}
+    image: ghcr.io/gadielkalleb/postiz-app:${IMAGE_TAG:-c65d2cd}
     build:
       context: .
       dockerfile: Dockerfile.dev

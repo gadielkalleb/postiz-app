@@ -10,7 +10,9 @@ i18next
   .use(LanguageDetector)
   .use(
     resourcesToBackend((language: any, namespace: any) => {
-      return import(`./locales/${language}/${namespace}.json`);
+      const locale =
+        language === 'pt-BR' ? 'pt' : language === 'en-US' ? 'en' : language;
+      return import(`./locales/${locale}/${namespace}.json`);
     })
   )
   .init({
