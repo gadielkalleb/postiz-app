@@ -1,6 +1,10 @@
-export const fallbackLng = 'pt';
+export const fallbackLng = 'pt-BR';
 export const languages = [
   fallbackLng,
+  'en-US',
+  // Keep the base codes available so saved preferences can migrate cleanly.
+  'pt',
+  'en',
   'he',
   'ru',
   'zh',

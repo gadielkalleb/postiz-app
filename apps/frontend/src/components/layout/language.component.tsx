@@ -10,7 +10,7 @@ import i18next from 'i18next';
 import useCookie from 'react-use-cookie';
 import ReactCountryFlag from 'react-country-flag';
 import { List, Box, Group, Text } from '@mantine/core';
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import countries from 'i18n-iso-countries';
 
 // Register required locales
@@ -20,6 +20,9 @@ import { ModalWrapperComponent } from '../new-launch/modal.wrapper.component';
 
 import clsx from 'clsx';
 countries.registerLocale(countriesEn);
+
+const normalizeLanguageCode = (languageCode: string) =>
+  languageCode === 'pt' ? 'pt-BR' : languageCode === 'en' ? 'en-US' : languageCode;
 
 const getCountryCodeForFlag = (languageCode: string) => {
   // For multi-region languages, here are some common defaults
@@ -63,7 +66,10 @@ const getCountryCodeForFlag = (languageCode: string) => {
 
 export const ChangeLanguageComponent = () => {
   const currentLanguage = i18next.resolvedLanguage || fallbackLng;
-  const availableLanguages = languages;
+  const normalizedLanguage = normalizeLanguageCode(currentLanguage);
+  const availableLanguages = languages.filter(
+    (language) => language !== 'pt' && language !== 'en'
+  );
   const [_, setCookie] = useCookie(cookieName, currentLanguage || fallbackLng);
   const modals = useModals();
   const t = useT();
@@ -91,6 +97,13 @@ export const ChangeLanguageComponent = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (normalizedLanguage !== currentLanguage) {
+      setCookie(normalizedLanguage);
+      void i18next.changeLanguage(normalizedLanguage);
+    }
+  }, [currentLanguage, normalizedLanguage, setCookie]);
+
   return (
     <div className="relative">
       <div className="grid grid-cols-4 gap-2">
@@ -98,7 +111,7 @@ export const ChangeLanguageComponent = () => {
           <div
             className={clsx(
               'flex items-center flex-col bg-newTableHeader hover:bg-newTableBorder p-[20px] cursor-pointer gap-2',
-              language === currentLanguage ? 'border border-textColor' : ''
+              language === normalizedLanguage ? 'border border-textColor' : ''
             )}
             key={language}
             onClick={() => handleLanguageChange(language)}
@@ -112,7 +125,7 @@ export const ChangeLanguageComponent = () => {
               }}
               title={language}
             />
-            <Text weight={language === currentLanguage ? 'bold' : 'normal'}>
+            <Text weight={language === normalizedLanguage ? 'bold' : 'normal'}>
               {getLanguageName(language)}
             </Text>
           </div>
@@ -123,8 +136,18 @@ export const ChangeLanguageComponent = () => {
 };
 export const LanguageComponent = () => {
   const modal = useModals();
-  const currentLanguage = i18next.resolvedLanguage || fallbackLng;
+  const detectedLanguage = i18next.resolvedLanguage || fallbackLng;
+  const currentLanguage = normalizeLanguageCode(detectedLanguage);
+  const [_, setCookie] = useCookie(cookieName, currentLanguage);
   const t = useT();
+
+  useEffect(() => {
+    if (currentLanguage !== detectedLanguage) {
+      setCookie(currentLanguage);
+      void i18next.changeLanguage(currentLanguage);
+    }
+  }, [currentLanguage, detectedLanguage, setCookie]);
+
   const openModal = () => {
     modal.openModal({
       title: t('change_language', 'Change Language'),
