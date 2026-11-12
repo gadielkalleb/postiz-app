@@ -14,13 +14,12 @@ private; the same token is used briefly over SSH when the VPS authenticates to
 GHCR.
 
 Install `ops/deploy-from-gha.sh` on the VPS at
-`/usr/local/sbin/foretell-deploy`, owned by root and not writable by the deploy
-user (for example, `sudo install -o root -g root -m 0755 ops/deploy-from-gha.sh
-/usr/local/sbin/foretell-deploy`). The dedicated public key must be installed in `authorized_keys`
+`/home/kaleb/foretell/deploy-from-gha.sh` with mode `0700`. The dedicated
+public key must be installed in `~/.ssh/authorized_keys`
 with this prefix (replace the key with the generated public key):
 
 ```text
-command="/usr/local/sbin/foretell-deploy",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA...
+command="/home/kaleb/foretell/deploy-from-gha.sh",no-port-forwarding,no-X11-forwarding,no-agent-forwarding,no-pty ssh-ed25519 AAAA...
 ```
 
 The script accepts only a `sha-<40 lowercase hex characters>` image tag,
@@ -31,8 +30,8 @@ not recreate Postgres, Redis, Temporal, or the Cloudflare Tunnel.
 
 Generate a dedicated key pair for GitHub Actions; do not reuse the personal SSH
 key used for interactive administration. Pin the VPS host key in the GitHub
-environment variable `VPS_HOST_KEY` using the already trusted host-key record,
-not an unverified `ssh-keyscan` result.
+environment variable `VPS_HOST_KEY` using the already trusted SSH known-hosts
+record, not an unverified `ssh-keyscan` result.
 
 Do not add an OCI source label to the image or use `GITHUB_TOKEN` to publish it:
 the source repository is public, while the image is intended to remain private.
